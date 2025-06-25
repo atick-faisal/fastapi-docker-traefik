@@ -1,60 +1,84 @@
+# Reference: https://github.com/dreamsofcode-io/guestbook
+
+version: "3.9"
+
+# ----------------------------------------
+# 🚦 Traefik Reverse Proxy
+# ----------------------------------------
 services:
   traefik:
     image: traefik:v3.4.1
-    command:
-      # API and dashboard
-      - "--api.dashboard=true"
-      - "--api.insecure=true"  # Remove this in production
+    container_name: traefik
 
-      # Docker provider
+    # Command-line flags to configure Traefik
+    command:
+      # 🧭 Enable Traefik dashboard (disable insecure mode in production)
+      - "--api.dashboard=true"
+      - "--api.insecure=true"  # ⚠️ Remove or secure this for production
+
+      # 🐳 Enable Docker provider
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
 
-      # Entrypoints
+      # 🌐 Define entrypoints for HTTP and HTTPS
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
 
-      # Let's Encrypt
+      # 🔐 Enable automatic TLS via Let's Encrypt
       - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-your-email@example.com}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
       - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
 
-      # HTTP to HTTPS redirect
+      # 🔁 Redirect all HTTP to HTTPS
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
 
     ports:
-      - "80:80"
-      - "443:443"
-      - "8080:8080"  # Dashboard (disable in production)
+      - "80:80"       # HTTP
+      - "443:443"     # HTTPS
+      - "8080:8080"   # Traefik dashboard (disable in production)
 
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ${LETSENCRYPT_PATH:-/etc/letsencrypt}:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # Watch Docker events
+      - ${LETSENCRYPT_PATH:-/etc/letsencrypt}:/letsencrypt  # Store TLS certs
 
     networks:
       - traefik
 
+# ----------------------------------------
+# 🚀 FastAPI Application
+# ----------------------------------------
   app:
     build: .
+    container_name: fastapi-app
+
     labels:
       - "traefik.enable=true"
 
-      # HTTP router (will redirect to HTTPS)
+      # 🌐 Route HTTP (auto-redirected to HTTPS)
       - "traefik.http.routers.fastapi-http.rule=Host(`${DOMAIN_NAME:-example.com}`)"
       - "traefik.http.routers.fastapi-http.entrypoints=web"
 
-      # HTTPS router
+      # 🔒 Route HTTPS with Let's Encrypt
       - "traefik.http.routers.fastapi-https.rule=Host(`${DOMAIN_NAME:-example.com}`)"
       - "traefik.http.routers.fastapi-https.entrypoints=websecure"
       - "traefik.http.routers.fastapi-https.tls.certresolver=letsencrypt"
 
-      # Service
+      # 🧩 Connect the router to this app's port 80
       - "traefik.http.services.fastapi.loadbalancer.server.port=80"
 
     networks:
       - traefik
 
+    deploy:
+      mode: replicated
+      replicas: 3
+
+    restart: always
+
+# ----------------------------------------
+# 🔗 Shared Network for Reverse Proxy
+# ----------------------------------------
 networks:
   traefik:
     driver: bridge
