@@ -23,13 +23,13 @@ jobs:
       - name: 📦 Install uv
         uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
       - name: 📥 Install Dependencies
         run: uv sync --all-extras --dev
 
       - name: 🧐 Run Ruff Linter
-        run: uv tool run ruff check
+        run: uv run ruff check
 
   #      - name: 🚀 Run Tests
   #        run: uv run pytest
@@ -84,7 +84,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           envs: HASH_TAG,LATEST_TAG
           script: |
-            cd /opt/your-app
+            cd fastapi-docker-traefik
             
             # Pull latest changes
             git pull origin main
