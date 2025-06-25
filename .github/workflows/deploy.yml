@@ -1,0 +1,100 @@
+name: Deploy FastAPI App
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  test:
+    name: 🧪 Test & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 📦 Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: 📥 Install Dependencies
+        run: uv sync --all-extras --dev
+
+      - name: 🧐 Run Ruff Linter
+        run: uv tool run ruff check
+
+  #      - name: 🚀 Run Tests
+  #        run: uv run pytest
+
+  build-and-push:
+    name: 🐳 Build & Push
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      hash-tag: ${{ steps.image.outputs.hash-tag }}
+      latest-tag: ${{ steps.image.outputs.latest-tag }}
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🔐 Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Generate Image Tags
+        id: image
+        run: |
+          SHORT_SHA=${GITHUB_SHA::7}
+          BASE_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          echo "hash-tag=${BASE_IMAGE}:main-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "latest-tag=${BASE_IMAGE}:latest" >> $GITHUB_OUTPUT
+          echo "short-sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      - name: 🔨 Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.image.outputs.hash-tag }}
+            ${{ steps.image.outputs.latest-tag }}
+
+  deploy:
+    name: 🚀 Deploy to VPS
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📡 Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: HASH_TAG,LATEST_TAG
+          script: |
+            cd /opt/your-app
+            
+            # Pull latest changes
+            git pull origin main
+            
+            # Deploy with latest tag (always points to newest)
+            docker compose pull
+            docker compose up -d --no-deps app
+            
+            # Cleanup old images
+            docker image prune -f
+        env:
+          HASH_TAG: ${{ needs.build-and-push.outputs.hash-tag }}
+          LATEST_TAG: ${{ needs.build-and-push.outputs.latest-tag }}
