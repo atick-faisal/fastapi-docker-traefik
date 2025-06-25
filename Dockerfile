@@ -48,7 +48,7 @@ RUN adduser \
 USER appuser
 
 # Copy app and virtual environment from builder
-COPY --from=builder --chown=source:source /source /source
+COPY --from=builder --chown=appuser:appuser /source /source
 
 # Prepend venv binaries to PATH
 ENV PATH="/source/.venv/bin:$PATH"
@@ -57,4 +57,4 @@ ENV PATH="/source/.venv/bin:$PATH"
 WORKDIR /source
 
 # Default command to launch FastAPI app (adapt path if needed)
-CMD ["fastapi", "run", "--host", "0.0.0.0", "--port", "80", "/source/app/main.py"]
+CMD ["fastapi", "run", "--host", "0.0.0.0", "--port", "8080", "/source/app/main.py"]

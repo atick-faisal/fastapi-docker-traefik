@@ -12,7 +12,7 @@ services:
     command:
       # 🧭 Enable Traefik dashboard (disable insecure mode in production)
       - "--api.dashboard=true"
-      - "--api.insecure=true"  # ⚠️ Remove or secure this for production
+      # - "--api.insecure=true"  # ⚠️ Remove or secure this for production
 
       # 🐳 Enable Docker provider
       - "--providers.docker=true"
@@ -34,7 +34,7 @@ services:
     ports:
       - "80:80"       # HTTP
       - "443:443"     # HTTPS
-      - "8080:8080"   # Traefik dashboard (disable in production)
+      # - "8080:8080"   # Traefik dashboard (disable in production)
 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro  # Watch Docker events
@@ -62,7 +62,7 @@ services:
       - "traefik.http.routers.fastapi-https.tls.certresolver=letsencrypt"
 
       # 🧩 Connect the router to this app's port 80
-      - "traefik.http.services.fastapi.loadbalancer.server.port=80"
+      - "traefik.http.services.fastapi.loadbalancer.server.port=8080"
 
     networks:
       - traefik
