@@ -1,7 +1,5 @@
 # Reference: https://github.com/dreamsofcode-io/guestbook
 
-version: "3.9"
-
 # ----------------------------------------
 # 🚦 Traefik Reverse Proxy
 # ----------------------------------------
@@ -45,12 +43,11 @@ services:
     networks:
       - traefik
 
-# ----------------------------------------
-# 🚀 FastAPI Application
-# ----------------------------------------
+  # ----------------------------------------
+  # 🚀 FastAPI Application
+  # ----------------------------------------
   app:
     build: .
-    container_name: fastapi-app
 
     labels:
       - "traefik.enable=true"
