@@ -34,6 +34,19 @@ FROM python:3.13-slim-bookworm
 
 # IMPORTANT: Match base image to builder to ensure Python path consistency
 
+# Create a non-privileged user that the app will run under.
+# See https://docs.docker.com/go/dockerfile-user-best-practices/
+ARG UID=10001
+RUN adduser \
+    --disabled-password \
+    --gecos "" \
+    --home "/nonexistent" \
+    --shell "/sbin/nologin" \
+    --no-create-home \
+    --uid "${UID}" \
+    appuser
+USER appuser
+
 # Copy app and virtual environment from builder
 COPY --from=builder --chown=source:source /source /source
 
