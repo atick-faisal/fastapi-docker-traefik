@@ -5,7 +5,7 @@
 # ----------------------------------------
 services:
   traefik:
-    image: traefik:v3.4.1
+    image: traefik:v3.4.4
     container_name: traefik
 
     # Command-line flags to configure Traefik
