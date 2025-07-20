@@ -1,3 +1,5 @@
+<div align="center"><a href="https://donate.unrwa.org/int/en/general"><img src="https://raw.githubusercontent.com/Safouene1/support-palestine-banner/master/banner-support.svg" alt="Support Palestine" style="width: 100%;"></a></div>
+
 # 🚀 FastAPI Docker Traefik Starter Template
 
 <p align="center">
