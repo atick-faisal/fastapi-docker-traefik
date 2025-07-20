@@ -91,7 +91,7 @@ jobs:
             
             # Deploy with latest tag (always points to newest)
             docker compose pull
-            docker compose up -d --no-deps app
+            docker compose up -d
             
             # Cleanup old images
             docker image prune -f
