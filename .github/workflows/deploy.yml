@@ -13,7 +13,7 @@ env:
   REGISTRY: "ghcr.io"
   IMAGE_NAME: ${{ github.repository }}
   REGION: me-cental1
-  SERVICE: ${{ github.repository }}
+  SERVICE: ${{ github.event.repository.name }}
 
 jobs:
   test:
