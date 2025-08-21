@@ -12,7 +12,7 @@ permissions:
 env:
   REGISTRY: "ghcr.io"
   IMAGE_NAME: ${{ github.repository }}
-  REGION: me-cental1
+  REGION: "me-central1"
   SERVICE: ${{ github.event.repository.name }}
 
 jobs:
