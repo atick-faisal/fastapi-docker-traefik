@@ -164,10 +164,12 @@ jobs:
       - name: 🚀 Deploy
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
+        env:
+          IMAGE_LATEST: ${{ needs.build-and-push.outputs.gar_latest }}
         with:
           service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
-          image: ${{ needs.build-and-push.outputs.gar_latest }}
+          image: ${IMAGE_LATEST}
           flags: |
             --allow-unauthenticated
             --cpu=1
