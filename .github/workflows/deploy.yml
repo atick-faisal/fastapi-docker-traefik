@@ -176,7 +176,7 @@ jobs:
             --memory=512Mi
             --max-instances=10
             --min-instances=0
-            --port=8000
+            --port=8080
             --concurrency=100
             --timeout=300s
             --execution-environment=gen2
