@@ -169,7 +169,7 @@ jobs:
         with:
           service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
-          image: ${{ env.IMAGE_LATEST }}
+          image: ${{ env.GAR_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY_NAME }}/${{ env.SERVICE }}:latest
           flags: |
             --allow-unauthenticated
             --cpu=1
