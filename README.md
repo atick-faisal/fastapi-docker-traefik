@@ -1,6 +1,6 @@
-# 🚀 FastAPI Docker Traefik Starter Template
-
 <div align="center"><a href="https://donate.unrwa.org/int/en/general"><img src="https://raw.githubusercontent.com/Safouene1/support-palestine-banner/master/banner-support.svg" alt="Support Palestine" style="width: 100%;"></a></div>
+
+# 🚀 FastAPI Docker Traefik Starter Template
 
 <p align="center">
     <img src="https://img.shields.io/badge/FastAPI-Async%20Python%203.13-0ba360?style=for-the-badge&colorA=363a4f&colorB=a6da95&logo=fastapi&logoColor=white"/>
@@ -10,8 +10,6 @@
     <img src="https://img.shields.io/badge/Let's%20Encrypt-Automated%20SSL-e0af68?style=for-the-badge&colorA=363a4f&colorB=e0af68&logo=letsencrypt&logoColor=white"/>
     <img src="https://img.shields.io/badge/Google%20Cloud%20Run-Serverless%20Deploy-4285F4?style=for-the-badge&colorA=363a4f&colorB=8aadf4&logo=googlecloud&logoColor=white"/>
 </p>
-
-<img width="960" height="540" alt="FasAPI-Docker-Traefik" src="https://github.com/user-attachments/assets/24441e0c-7c39-4b5f-94b2-0d0a30e6be60" />
 
 Production-ready FastAPI template with **two deployment options**: traditional VPS with Traefik or serverless Google
 Cloud Run. Choose your path below! 🚀
