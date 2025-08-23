@@ -52,10 +52,10 @@ locals {
 
   # Define IAM roles in a map for better maintainability
   iam_roles = {
-    "run_admin"        = "roles/run.admin"
-    "artifact_writer"  = "roles/artifactregistry.writer"
+    "run_admin"       = "roles/run.admin"
+    "artifact_writer" = "roles/artifactregistry.writer"
     "sa_user"         = "roles/iam.serviceAccountUser"
-    "storage_admin"   = "roles/storage.admin"  # Often needed for Cloud Run deployments
+    "storage_admin"   = "roles/storage.admin" # Often needed for Cloud Run deployments
   }
 }
 
@@ -87,19 +87,19 @@ resource "google_iam_workload_identity_pool_provider" "github_provider" {
   workload_identity_pool_provider_id = var.wip_oidc_name
   display_name                       = "GitHub OIDC Provider"
   description                        = "OIDC provider for GitHub Actions authentication"
-  project                           = var.project_id
-  disabled                          = false
+  project                            = var.project_id
+  disabled                           = false
 
   # Enhanced attribute mapping with additional useful attributes
   attribute_mapping = {
-    "google.subject"                = "assertion.sub"
-    "attribute.actor"               = "assertion.actor"
-    "attribute.repository"          = "assertion.repository"
-    "attribute.repository_owner"    = "assertion.repository_owner"
-    "attribute.ref"                 = "assertion.ref"
-    "attribute.sha"                 = "assertion.sha"
-    "attribute.workflow"            = "assertion.workflow"
-    "attribute.job_workflow_ref"    = "assertion.job_workflow_ref"
+    "google.subject"             = "assertion.sub"
+    "attribute.actor"            = "assertion.actor"
+    "attribute.repository"       = "assertion.repository"
+    "attribute.repository_owner" = "assertion.repository_owner"
+    "attribute.ref"              = "assertion.ref"
+    "attribute.sha"              = "assertion.sha"
+    "attribute.workflow"         = "assertion.workflow"
+    "attribute.job_workflow_ref" = "assertion.job_workflow_ref"
   }
 
   # More restrictive attribute condition for better security
@@ -150,8 +150,8 @@ resource "google_artifact_registry_repository" "gar" {
 
     condition {
       tag_state    = "TAGGED"
-      tag_prefixes = ["main-"]     # Matches your main-a1b2c3d tags
-      older_than   = "1209600s"    # 14 days (shorter for CI builds)
+      tag_prefixes = ["main-"]  # Matches your main-a1b2c3d tags
+      older_than   = "1209600s" # 14 days (shorter for CI builds)
     }
   }
 
@@ -171,7 +171,7 @@ resource "google_artifact_registry_repository" "gar" {
     action = "KEEP"
 
     condition {
-      tag_state = "TAGGED"
+      tag_state    = "TAGGED"
       tag_prefixes = ["latest"]
     }
   }
@@ -198,10 +198,10 @@ output "workload_identity_provider_id" {
 output "artifact_registry_repository" {
   description = "Artifact Registry repository details"
   value = {
-    name         = google_artifact_registry_repository.gar.name
+    name          = google_artifact_registry_repository.gar.name
     repository_id = google_artifact_registry_repository.gar.repository_id
-    location     = google_artifact_registry_repository.gar.location
-    format       = google_artifact_registry_repository.gar.format
+    location      = google_artifact_registry_repository.gar.location
+    format        = google_artifact_registry_repository.gar.format
   }
 }
 

@@ -11,7 +11,7 @@ variable "project_id" {
 variable "region" {
   description = "The Google Cloud region where regional resources will be created (e.g., us-central1, europe-west1)"
   type        = string
-  default     = "us-central1"
+  default     = "me-central1"
 
   validation {
     condition     = can(regex("^[a-z]+-[a-z]+[0-9]$", var.region))
