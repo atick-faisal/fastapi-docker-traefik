@@ -2,126 +2,185 @@ name: Deploy FastAPI App
 
 on:
   push:
-#    branches: [ main ]
+    branches: [ main ]
+
+# Prevent overlapping runs on main
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
 
 permissions:
   contents: read
   packages: write
-  id-token: 'write'
+  id-token: write
 
 env:
-  REGISTRY: "ghcr.io"
-  IMAGE_NAME: ${{ github.repository }}
   REGION: "me-central1"
-  SERVICE: ${{ github.event.repository.name }}
+  SERVICE: "${{ github.event.repository.name }}"
+  # GHCR
+  GHCR_REGISTRY: "ghcr.io"
+  GHCR_IMAGE: "ghcr.io/${{ github.repository }}"
+  # GAR (Artifact Registry) — repo must exist (Docker format)
+  GAR_REGISTRY: "${{ env.REGION }}-docker.pkg.dev"
+  GAR_IMAGE: "${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY_NAME }}/${{ github.event.repository.name }}"
 
 jobs:
   test:
     name: 🧪 Test & Lint
     runs-on: ubuntu-latest
     steps:
-      - name: ⬇️ Checkout Repository
-        uses: actions/checkout@v5
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
 
       - name: 📦 Install uv
         uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.13"
 
-      - name: 📥 Install Dependencies
+      - name: 📥 Install deps
         run: uv sync --all-extras --dev
 
-      - name: 🧐 Run Ruff Linter
+      - name: 🧐 Ruff
         run: uv run ruff check
-
-  #      - name: 🚀 Run Tests
-  #        run: uv run pytest
+      # - name: ✅ Tests
+      #   run: uv run pytest
 
   build-and-push:
-    name: 🐳 Build & Push
-    needs: test
+    name: 🐳 Build & Push (GHCR + GAR)
     runs-on: ubuntu-latest
+    needs: test
     if: github.ref == 'refs/heads/main'
     outputs:
-      hash-tag: ${{ steps.image.outputs.hash-tag }}
-      latest-tag: ${{ steps.image.outputs.latest-tag }}
+      ghcr_latest: ${{ steps.meta.outputs.ghcr_latest }}
+      gar_latest: ${{ steps.meta.outputs.gar_latest }}
+      short_sha: ${{ steps.meta.outputs.short_sha }}
     steps:
-      - name: ⬇️ Checkout Repository
-        uses: actions/checkout@v5
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
 
-      - name: 🔐 Log in to Container Registry
+      - name: 🔧 Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: 🔧 Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🏷️ Compute tags
+        id: meta
+        run: |
+          SHORT_SHA=${GITHUB_SHA::7}
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+          # Two tags per registry: :main-<sha> and :latest
+          echo "ghcr_sha=${{ env.GHCR_IMAGE }}:main-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "ghcr_latest=${{ env.GHCR_IMAGE }}:latest" >> "$GITHUB_OUTPUT"
+          echo "gar_sha=${{ env.GAR_IMAGE }}:main-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "gar_latest=${{ env.GAR_IMAGE }}:latest" >> "$GITHUB_OUTPUT"
+
+      - name: 🔐 Login GHCR
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ${{ env.GHCR_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🏷️ Generate Image Tags
-        id: image
-        run: |
-          SHORT_SHA=${GITHUB_SHA::7}
-          BASE_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
-          echo "hash-tag=${BASE_IMAGE}:main-${SHORT_SHA}" >> $GITHUB_OUTPUT
-          echo "latest-tag=${BASE_IMAGE}:latest" >> $GITHUB_OUTPUT
-          echo "short-sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+      - name: 🔐 Google Auth (WIF)
+        id: gcp-auth
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: access_token
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER_ID }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
 
-      - name: 🔨 Build and Push Docker Image
+      - name: 🔐 Login GAR (Artifact Registry)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GAR_REGISTRY }}
+          username: oauth2accesstoken
+          password: ${{ steps.gcp-auth.outputs.access_token }}
+
+      - name: 🏗️ Build & Push once to both registries
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
+          # Build cache speeds up repeat builds
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Single build, multiple tags (GHCR + GAR)
           tags: |
-            ${{ steps.image.outputs.hash-tag }}
-            ${{ steps.image.outputs.latest-tag }}
+            ${{ steps.meta.outputs.ghcr_sha }}
+            ${{ steps.meta.outputs.ghcr_latest }}
+            ${{ steps.meta.outputs.gar_sha }}
+            ${{ steps.meta.outputs.gar_latest }}
+          # Good practice labels (OCI)
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.revision=${{ github.sha }}
 
   deploy-vps:
     name: 🚀 Deploy to VPS
-    needs: build-and-push
     runs-on: ubuntu-latest
+    needs: build-and-push
     steps:
-      - name: 📡 Deploy to VPS
+      - name: 📡 SSH & Deploy
         uses: appleboy/ssh-action@v1.2.2
+        env:
+          IMAGE_LATEST: ${{ needs.build-and-push.outputs.ghcr_latest }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: HASH_TAG,LATEST_TAG
           script: |
+            set -euo pipefail
             cd fastapi-docker-traefik
-            
-            # Pull latest changes
-            git pull origin main
-            
-            # Deploy with latest tag (always points to newest)
+
+            # Optionally update an .env used by docker compose
+            # echo "APP_IMAGE=${IMAGE_LATEST}" > .env
+
+            # Pull repo infra changes (compose files etc.)
+            git fetch origin main --depth=1
+            git reset --hard origin/main
+
+            # Pull & restart services
             docker compose pull
             docker compose up -d
-            
-            # Cleanup old images
+
+            # Clean up dangling images
             docker image prune -f
-        env:
-          HASH_TAG: ${{ needs.build-and-push.outputs.hash-tag }}
-          LATEST_TAG: ${{ needs.build-and-push.outputs.latest-tag }}
 
   deploy-cloud-run:
-    name: 🚀 Deploy to Google Cloud Run
+    name: ☁️ Deploy to Cloud Run
     runs-on: ubuntu-latest
     needs: build-and-push
     steps:
-      - name: Google Auth
-        id: auth
-        uses: "google-github-actions/auth@v2"
+      - name: 🔐 Google Auth (WIF)
+        id: gcp-auth
+        uses: google-github-actions/auth@v2
         with:
-          token_format: "access_token"
-          workload_identity_provider: ${{ secrets.GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+          token_format: access_token
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER_ID }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
 
-      - name: Deploy to Cloud Run
+      - name: 🚀 Deploy
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
-          image: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+          image: ${{ needs.build-and-push.outputs.gar_latest }}
+          flags: |
+            --allow-unauthenticated
+            --cpu=1
+            --memory=512Mi
+            --max-instances=10
+            --min-instances=0
+            --port=8000
+            --concurrency=100
+            --timeout=300s
+            --execution-environment=gen2
 
-      - name: Show Output
-        run: echo ${{ steps.deploy.outputs.url }}
+      - name: 🌐 URL
+        run: |
+          echo "Cloud Run URL: ${{ steps.deploy.outputs.url }}"
+          echo "Cloud Run Service: ${{ env.SERVICE }}"
+          echo "Region: ${{ env.REGION }}"

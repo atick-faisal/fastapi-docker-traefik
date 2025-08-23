@@ -68,3 +68,13 @@ variable "wip_oidc_name" {
     error_message = "OIDC provider name must start with a lowercase letter and contain only lowercase letters, numbers, and hyphens."
   }
 }
+
+variable "gar_repo_name" {
+  description = "The name of the Google Artifact Registry repository for storing container images"
+  type        = string
+
+  validation {
+    condition     = can(regex("^[a-z]([a-z0-9-]*[a-z0-9])?$", var.gar_repo_name))
+    error_message = "Artifact Registry repository name must start with a lowercase letter and contain only lowercase letters, numbers, and hyphens."
+  }
+}
