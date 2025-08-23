@@ -169,7 +169,7 @@ jobs:
         with:
           service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
-          image: ${{IMAGE_LATEST}}
+          image: ${{ env.IMAGE_LATEST }}
           flags: |
             --allow-unauthenticated
             --cpu=1
