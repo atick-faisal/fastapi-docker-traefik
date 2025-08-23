@@ -20,12 +20,12 @@ variable "region" {
 }
 
 variable "github_repo" {
-  description = "The name of the GitHub repository (without owner prefix)"
+  description = "The full GitHub repository name (owner/repository)"
   type        = string
 
   validation {
-    condition     = can(regex("^[A-Za-z0-9._-]+$", var.github_repo))
-    error_message = "GitHub repository name can only contain alphanumeric characters, periods, hyphens, and underscores."
+    condition     = can(regex("^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$", var.github_repo))
+    error_message = "GitHub repository must be in the format 'owner/repository' where both owner and repository names can only contain alphanumeric characters, periods, hyphens, and underscores."
   }
 }
 
