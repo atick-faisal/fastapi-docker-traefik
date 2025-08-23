@@ -15,14 +15,14 @@ permissions:
   id-token: write
 
 env:
-  REGION: "me-central1"
+  REGION: ${{ secrets.REGION }}
   SERVICE: "${{ github.event.repository.name }}"
   # GHCR
   GHCR_REGISTRY: "ghcr.io"
   GHCR_IMAGE: "ghcr.io/${{ github.repository }}"
   # GAR (Artifact Registry) — repo must exist (Docker format)
-  GAR_REGISTRY: "${{ env.REGION }}-docker.pkg.dev"
-  GAR_IMAGE: "${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY_NAME }}/${{ github.event.repository.name }}"
+  GAR_REGISTRY: "${{ secrets.REGION }}-docker.pkg.dev"
+  GAR_IMAGE: "${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY_NAME }}/${{ github.event.repository.name }}"
 
 jobs:
   test:
