@@ -1,9 +1,12 @@
 {
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: [
-    'config:recommended',
+    "config:recommended",
+    "group:all",
+    ":dependencyDashboard",
+    "schedule:daily"
   ],
   lockFileMaintenance: {
     enabled: true,
-  },
-  dependencyDashboard: true,
+  }
 }
