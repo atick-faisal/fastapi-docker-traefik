@@ -123,7 +123,7 @@ jobs:
     needs: build-and-push
     steps:
       - name: 📡 SSH & Deploy
-        uses: appleboy/ssh-action@v1.2.2
+        uses: appleboy/ssh-action@v1.2.3
         env:
           IMAGE_LATEST: ${{ needs.build-and-push.outputs.ghcr_latest }}
         with:
