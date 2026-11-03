@@ -30,7 +30,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ----------------------------------------
 # 🚀 Final Stage — Lightweight Runtime Image
 # ----------------------------------------
-FROM python:3.13-slim-bookworm
+FROM python:3.15-slim-bookworm
 
 # IMPORTANT: Match base image to builder to ensure Python path consistency
 
